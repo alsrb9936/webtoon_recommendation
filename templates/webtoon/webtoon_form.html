@@ -1,0 +1,7 @@
+{% if user.is_authenticated %}
+<form action="{% url 'webtoon:review' webtoon.id %}" method="post">
+    {% csrf_token %}    
+    {{ form.as_p }}
+    <input type="submit" value="평가등록">
+</form>
+{% endif %}

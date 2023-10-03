@@ -1,0 +1,59 @@
+<nav class="shadow-sm navbar navbar-expand-lg navbar-light bg-light border-bottom">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'index' %}">웹툰 추천 시스템 </a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'common:logout' %}">{{ user.username }} (로그아웃)</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'webtoon:mypage' %}">내가 평가한 웹툰</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">AI 추천 웹툰</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'common:login' %}">로그인</a>
+                </li>
+                {% endif %}
+                <li>
+                    {% if not user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'common:signup' %}">회원가입</a>
+                    {% endif %}
+                </li>
+                <div class="dropdown">
+                    <button class="btn dropdown-toggle me-auto mb-2 mb-lg-0" type="button" id="dropdownMenuButton1"
+                            data-toggle="dropdown" aria-expanded="false">
+                        요일별 웹툰
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' 'all' %}">전체</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '월' %}">월요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '화' %}">화요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '수' %}">수요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '목' %}">목요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '금' %}">금요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '토' %}">토요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '일' %}">일요일</a></li>
+                        <li><a class="dropdown-item" href="{% url 'webtoon:week' '완결' %}">완결</a></li>
+                    </ul>
+                </div>
+            </ul>
+        </div>
+        <form class="d-flex" action="{% url 'webtoon:search' %}" role="search" method="post">
+            {% csrf_token %}
+            <input class="form-control me-2" name="searched" minlength="2" type="search" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+          </form>
+    </div>
+</nav>

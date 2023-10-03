@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    span{
+        display: block;
+    }
+</style>
+<div class="container my-3">
+    <!--질문-->
+    <h2 class="border-bottom py-2">{{ webtoon.title }}</h2>
+    <div class="card my-3">
+        <div class="card-body">
+            <div class="container">
+                <div class="row">
+                    <img class="col-4" src="{{ webtoon.image }}" alt="" style="border-radius: 40px;">
+                    <div class="col-8">
+                        <div class="d-flex justify-content-between">
+                            <div class="card-text" style="white-space: pre-line; font-size:40px">{{ webtoon.title }}</div>
+                            <a class="pt-1 pl-2"href="{{ webtoon.webtoon_url }}">
+                                <button type="button" class="btn btn-primary btn-lg">상세정보</button>
+                            </a>
+                        </div>
+                        <div class="card-text" style="white-space: pre-line; font-size:15px">{{ webtoon.author }}</div>
+                        <div class="card-text badge bg-secondary rounded-pill" style="white-space: pre-line; font-size:15px; color: #ffe900;">{{ webtoon.rating }}</div>
+                        <div class="ms-3 my-3 pb-3 pt-4">
+                            {% if request.user.is_authenticated %}
+                                {% if webtoon_review %}
+                                    <div class="card-text mb-2" style="white-space: pre-line;"> 내 평점 : {{ webtoon_review.rating }}</div>
+                                    <div class="card-text mb-2" style="white-space: pre-line;"> 내 평가 : {{ webtoon_review.review }}</div>
+                                    <form action="{% url 'webtoon:review_update' webtoon.id %}" method="post">
+                                        {% csrf_token %}
+                                        {{ form.as_p }}
+                                        <button class="btn btn-outline-secondary d-inline-flex align-items-center" type="submit">
+                                            평가 수정
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form action="{% url 'webtoon:review' webtoon.id %}" method="post" >
+                                        {% csrf_token %}
+                                        {{ form.as_p }}
+                                        <button class="btn btn-primary d-inline-flex align-items-center" type="submit">
+                                            평가 등록
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                            {% endif %}
+                        </div>
+                        <div class="card-text pt-3" style="white-space: pre-line;" id="genre"></div>
+                            <div class="container">
+                                <div class="row align-items-start" id='genre-elment' style="font-size:15px">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+<span class="col-2 badge rounded-pill bg-primary"></span>
+<script>
+    window.onload = function(){
+        var genre = '{{ webtoon.genre }}';
+        console.log(genre);
+        genre = genre.split('#');
+        var elment = $('#genre-elment');
+
+        for (var i = 1; i < genre.length; i++) {
+            
+            elment.append('<span class="col-2 badge bg-primary rounded-pill" style="font-size: 15px;"> #'+genre[i]+ '</span>');
+        }
+
+    }
+
+</script> 
+{% endblock %}
+```
