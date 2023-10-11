@@ -36,7 +36,7 @@
                                 font-size:15px;
                                 margin: 0;
                                 text-align: center;">
-                                    {{ webtoon.title|truncatechars:14 }}
+                                    {{ webtoon.title|truncatechars:13 }}
 
                                 </h3>
                             </a>
@@ -65,7 +65,7 @@
         <!--이전페이지-->
         {% if webtoon_list.has_previous %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ webtoon_list.previous_page_number }}">이전</a>
+            <a class="page-link" href="?searched={{ searched }}&page={{ webtoon_list.previous_page_number }}">이전</a>
         </li>
         {% else %}
         <li class="page-item disabled">
@@ -75,14 +75,15 @@
 
         <!--페이지리스트-->
         {% for page_number in webtoon_list.paginator.page_range %}
-        {% if page_number >= webtoon_list.number|add:-2 and page_number <= webtoon_list.number|add:3 %}
+        {% if page_number >= webtoon_list.number|add:-2 and page_number <= webtoon_list.number|add:2 %}
         {% if page_number == webtoon_list.number %}
+        
         <li class="page-item active" aria-current="page">
-            <a class="page-link" href="?page={{ page_number }}">{{ page_number }}</a>
+            <a class="page-link" href="?searched={{ searched }}&page={{ page_number }}">{{ page_number }}</a>
         </li>
         {% else %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ page_number }}">{{ page_number }}</a>
+            <a class="page-link" href="?searched={{ searched }}&page={{ page_number }}">{{ page_number }}</a>
         </li>
         {% endif %}
         {% endif %}
@@ -90,7 +91,7 @@
         <!-- 다음페이지 -->
         {% if webtoon_list.has_next %}
         <li class="page-item">
-            <a class="page-link" href="?page={{ webtoon_list.next_page_number }}">다음</a>
+            <a class="page-link" href="?searched={{ searched }}&page={{ webtoon_list.next_page_number }}">다음</a>
         </li>
         {% else %}
         <li class="page-item disabled">
@@ -100,10 +101,16 @@
     </ul>
 </div>
 
+
+{% if posible_user %}
+{% if posible_user == 'false' %}
 <script>
-    function Allter() {
-        alert("관심 웹툰에 담겼습니다.")
+	window.onload = function(){
+        alert("현재 추천 웹툰 {{ webtoon_list|length }}개 입니다. \n\n10개 이상 평가하셔야 추천 받을 수 있습니다.")
     }
 </script>
+{% endif %}
+{% endif %}
+
 {% endblock %}
 ```

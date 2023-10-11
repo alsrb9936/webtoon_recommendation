@@ -29,12 +29,19 @@ def test(request):
     return HttpResponse('test')
 
 def index(request):
+    searched = request.GET.get('searched', '')
     page = request.GET.get('page', '1')
-    webtoon_list = Webtoon.objects.all()
+    if searched:       
+            webtoon_list = Webtoon.objects.filter(
+                Q(title__icontains=searched) |
+                Q(author__icontains=searched) |
+                Q(genre__icontains=searched)).distinct()
+    else:
+        webtoon_list = Webtoon.objects.all()
     paginator = Paginator(webtoon_list, 12)
     page_obj = paginator.get_page(page)
-    context = {'webtoon_list': page_obj}
-
+    context = {'webtoon_list': page_obj, 'searched': searched}
+    
     return render(request, 'webtoon/webtoon_list.html', context)
 
 def week(request, webtoon_week):
@@ -106,22 +113,50 @@ def mypage(request):
     return render(request, 'webtoon/webtoon_list.html', context)
 
 def search(request):
+    searched = request.GET.get('searched', '')
     page = request.GET.get('page', '1')
-    if request.method == 'POST':
-            searched = request.POST['searched']        
+    if searched:       
             webtoon_list = Webtoon.objects.filter(
                 Q(title__icontains=searched) |
                 Q(author__icontains=searched) |
                 Q(genre__icontains=searched)).distinct()
     else:
-        webtoon_list = Webtoon.objects.last()
+        webtoon_list = Webtoon.objects.all()
     paginator = Paginator(webtoon_list, 12)
     page_obj = paginator.get_page(page)
-    context = {'webtoon_list': page_obj}
+    context = {'webtoon_list': page_obj, 'searched': searched}
     
     return render(request, 'webtoon/webtoon_list.html', context)
-# def detail(request, webtoon_id):
-#     webtoon = get_object_or_404(Webtoon,pk=webtoon_id)
-#     context = { 'webtoon': webtoon }
 
-#     return render(request, 'pybo/question_detail.html', context)
+@login_required
+def aireco(request):
+    posible_user = request.user
+
+    # 유저가 본 웹툰
+    user_webtoon_list = User_Webtoon.objects.filter(reviewer=posible_user).values('webtoon')
+    user_webtoon_list = Webtoon.objects.filter(id__in=user_webtoon_list)
+
+    if user_webtoon_list.count() <= 12:
+        page = request.GET.get('page', '1')
+        webtoon_list = user_webtoon_list
+        paginator = Paginator(webtoon_list, 12)
+        page_obj = paginator.get_page(page)
+        context = {'webtoon_list': page_obj, 'posible_user': 'false'}
+
+        return render(request, 'webtoon/webtoon_list.html', context)
+    
+    else:
+        page = request.GET.get('page', '1')
+        webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
+        webtoon_list = Webtoon.objects.filter(id__in=webtoon_list)
+
+        # Ai 추천 코드
+        # webtoon_list = recommendation(webtoon_list)
+
+        paginator = Paginator(webtoon_list, 12)
+        page_obj = paginator.get_page(page)
+        context = {'webtoon_list': page_obj, 'posible_user': 'true'}
+
+        return render(request, 'webtoon/webtoon_list.html', context)
+    
+### def recommendation(webtoon_list):
