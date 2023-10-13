@@ -19,8 +19,8 @@
                     <a class="nav-link" href="{% url 'webtoon:mypage' %}">내가 평가한 웹툰</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">AI 추천 웹툰</a>
-                </li>
+                    <a class="nav-link" href="{% url 'webtoon:aireco' %}">AI 추천 웹툰</a>
+                </li> 
                 {% else %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'common:login' %}">로그인</a>
@@ -50,8 +50,7 @@
                 </div>
             </ul>
         </div>
-        <form class="d-flex" action="{% url 'webtoon:search' %}" role="search" method="post">
-            {% csrf_token %}
+        <form class="d-flex" action="{% url 'webtoon:search' %}" role="search" method="get">
             <input class="form-control me-2" name="searched" minlength="2" type="search" placeholder="Search" aria-label="Search">
             <button class="btn btn-outline-success" type="submit">Search</button>
           </form>

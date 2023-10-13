@@ -49,6 +49,7 @@
                         <div class="card-text pt-3" style="white-space: pre-line;" id="genre"></div>
                             <div class="container">
                                 <div class="row align-items-start" id='genre-elment' style="font-size:15px">
+                                    
                                 </div>
                             </div>
                         </div>
@@ -73,8 +74,10 @@
         genre = genre.split('#');
         var elment = $('#genre-elment');
 
-        for (var i = 1; i < genre.length; i++) {
-            
+        for (var i = 0; i < genre.length; i++) {
+            if(genre[i] == '' || genre[i].length >9 ){
+                continue;
+            }
             elment.append('<span class="col-2 badge bg-primary rounded-pill" style="font-size: 15px;"> #'+genre[i]+ '</span>');
         }
 

@@ -12,5 +12,7 @@ urlpatterns = [
     path('mypage/', views.mypage, name='mypage'),
     path('week/<str:webtoon_week>/', views.week, name='week'),
     path('search/', views.search, name='search'),
+    path('aireco/', views.aireco, name='aireco'),
     path('test/', views.test, name='test'),
+
 ]
