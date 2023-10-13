@@ -7,7 +7,13 @@ from django.db.models import Q
 from .models import Webtoon, User_Webtoon
 from .forms import User_WebtoonForm
 from collections import Counter
-from .secret import gpt_api_key
+
+
+import os
+import pandas as pd
+import numpy as np
+
+from matrix_factorization import BaselineModel, KernelMF, train_update_test_split
 
 # import openai
 # import csv
@@ -16,28 +22,34 @@ from .secret import gpt_api_key
 # # OpenAI API 인증 정보 설정
 # openai.api_key = gpt_api_key
 
+global baseline_model
+
+def calculate_rating():
+    global baseline_model
+    webtoon_list = User_Webtoon.objects.all()
+    arr = []
+    for webtoon in webtoon_list:
+        col = []
+        col.append(webtoon.reviewer.id)
+        col.append(webtoon.webtoon.id)
+        col.append(webtoon.rating)
+        arr.append(col)
 
 
+    webtoon_data = pd.DataFrame(arr, columns=['user_id', 'item_id', 'rating'])
+
+    cols = ['user_id', 'item_id', 'rating']
+
+    X = webtoon_data[['user_id', 'item_id']]
+    y = webtoon_data['rating']//2
+    baseline_model = BaselineModel(method='sgd', n_epochs = 20, reg = 0.005, lr = 0.01, verbose=1)
+    baseline_model.fit(X, y)
+
+    print('calculate_rating')
+ 
 def test(request):
-    webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
-    webtoon_list_genre = Webtoon.objects.filter(id__in=webtoon_list).values('genre')
-    all_webtoon_query = Webtoon.objects.all().values('id', 'genre')
-    all_webtoon = {item['id']: item['genre'][1:].split('#') for item in all_webtoon_query}
-    
-    genre = [genre for i in webtoon_list_genre for genre in i['genre'][1:].split('#')]
-    most_common_genres = Counter(genre).most_common(3)
-    genre = [genre for genre, __ in most_common_genres]
-    
-    result = find_webtoons_with_genres(all_webtoon, genre)
-    result.sort(key=lambda x: x[1], reverse=True)
-    
-    id_list = [d['webtoon'] for d in webtoon_list]
-    
-    result = [t for t in result if t[0] not in id_list]
-    result = result[:10]
-    result = [t[0] for t in result]
-
-    return HttpResponse(result)
+    calculate_rating()
+    return HttpResponse('complete')
 
 def index(request):
     searched = request.GET.get('searched', '')
@@ -162,11 +174,19 @@ def aireco(request):
         page = request.GET.get('page', '1')
         webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
         genre_keyword = extract_genre(webtoon_list)
-        # Ai 추천 코드
-        # webtoon_list = recommendation(webtoon_list)
-        result_id = extract_genre(webtoon_list)
+        
+        calculate_rating()
+        user_set = set([i['webtoon'] for i in User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')])
+        recommendation_webtoon = set(recommendation(request.user.id)).difference(user_set)
 
-        webtoon_list = Webtoon.objects.filter(id__in=result_id)
+        if len(recommendation_webtoon) >= 12:
+            webtoon_list = Webtoon.objects.filter(id__in=recommendation_webtoon).order_by('-rating')
+            
+        else:    
+            result_id = extract_genre(webtoon_list)
+            webtoon_list = Webtoon.objects.filter(id__in=result_id)
+        
+
         paginator = Paginator(webtoon_list, 12)
         page_obj = paginator.get_page(page)
         context = {'webtoon_list': page_obj, 'posible_user': 'true'}
@@ -174,7 +194,6 @@ def aireco(request):
     return render(request, 'webtoon/webtoon_list.html', context)
 
 def extract_genre(webtoon_list):
-    
     webtoon_list_genre = Webtoon.objects.filter(id__in=webtoon_list).values('genre')
     all_webtoon_query = Webtoon.objects.all().values('id', 'genre')
     all_webtoon = {item['id']: item['genre'][1:].split('#') for item in all_webtoon_query}
@@ -189,7 +208,7 @@ def extract_genre(webtoon_list):
     id_list = [d['webtoon'] for d in webtoon_list]
     
     result = [t for t in result if t[0] not in id_list]
-    result = result[:24]
+    result = result[:12]
     result = [t[0] for t in result]
     
     return result
@@ -209,9 +228,15 @@ def find_webtoons_with_genres(webtoon_data, top_genres):
             matching_webtoons.append((webtoon_id, 1))
 
     return matching_webtoons
-### def recommendation(webtoon_list):
 
-
+def recommendation(User_id):
+    global baseline_model
+    result = baseline_model.recommend(user=User_id)
+    tmp = []
+    for i in result.values.tolist():
+        tmp.append(int(i[1]))
+    
+    return tmp
 # # GPT-3 모델 호출 및 결과 반환 함수
 # def generate_chat_response(messages: list, user_input: str) -> str:
 #     try:
