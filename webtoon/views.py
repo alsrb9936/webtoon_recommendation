@@ -9,26 +9,35 @@ from .forms import User_WebtoonForm
 from collections import Counter
 from .secret import gpt_api_key
 
-import openai
-import csv
+# import openai
+# import csv
 
 
-# OpenAI API 인증 정보 설정
-openai.api_key = gpt_api_key
+# # OpenAI API 인증 정보 설정
+# openai.api_key = gpt_api_key
+
+
 
 def test(request):
-    page = request.GET.get('page', '1')
     webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
-    webtoon_list = Webtoon.objects.filter(id__in=webtoon_list).values('genre')
+    webtoon_list_genre = Webtoon.objects.filter(id__in=webtoon_list).values('genre')
+    all_webtoon_query = Webtoon.objects.all().values('id', 'genre')
+    all_webtoon = {item['id']: item['genre'][1:].split('#') for item in all_webtoon_query}
+    
+    genre = [genre for i in webtoon_list_genre for genre in i['genre'][1:].split('#')]
+    most_common_genres = Counter(genre).most_common(3)
+    genre = [genre for genre, __ in most_common_genres]
+    
+    result = find_webtoons_with_genres(all_webtoon, genre)
+    result.sort(key=lambda x: x[1], reverse=True)
+    
+    id_list = [d['webtoon'] for d in webtoon_list]
+    
+    result = [t for t in result if t[0] not in id_list]
+    result = result[:10]
+    result = [t[0] for t in result]
 
-    genre = []
-
-    for i in webtoon_list:
-        genre.extend(i['genre'][1:].split('#'))
-
-    genre = Counter(genre).most_common(3)
-    print(genre)
-    return HttpResponse('test')
+    return HttpResponse(result)
 
 def index(request):
     searched = request.GET.get('searched', '')
@@ -138,7 +147,7 @@ def aireco(request):
     user_webtoon_list = User_Webtoon.objects.filter(reviewer=posible_user).values('webtoon')
     user_webtoon_list = Webtoon.objects.filter(id__in=user_webtoon_list)
 
-    if user_webtoon_list.count() <= 20:
+    if user_webtoon_list.count() <= 12:
         page = request.GET.get('page', '1')
         webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
         webtoon_list = Webtoon.objects.filter(id__in=webtoon_list)
@@ -152,52 +161,80 @@ def aireco(request):
     else:
         page = request.GET.get('page', '1')
         webtoon_list = User_Webtoon.objects.filter(reviewer=request.user).values('webtoon')
-        webtoon_list = Webtoon.objects.filter(id__in=webtoon_list)
-
         genre_keyword = extract_genre(webtoon_list)
         # Ai 추천 코드
         # webtoon_list = recommendation(webtoon_list)
+        result_id = extract_genre(webtoon_list)
 
+        webtoon_list = Webtoon.objects.filter(id__in=result_id)
         paginator = Paginator(webtoon_list, 12)
         page_obj = paginator.get_page(page)
         context = {'webtoon_list': page_obj, 'posible_user': 'true'}
 
-        return render(request, 'webtoon/webtoon_list.html', context)
+    return render(request, 'webtoon/webtoon_list.html', context)
 
 def extract_genre(webtoon_list):
-    genre = []
-
-    for i in webtoon_list:
-        genre.extend(i['genre'][1:].split('#'))
-    genre = Counter(genre).most_common(3)
-
-    return genre     
     
+    webtoon_list_genre = Webtoon.objects.filter(id__in=webtoon_list).values('genre')
+    all_webtoon_query = Webtoon.objects.all().values('id', 'genre')
+    all_webtoon = {item['id']: item['genre'][1:].split('#') for item in all_webtoon_query}
+    
+    genre = [genre for i in webtoon_list_genre for genre in i['genre'][1:].split('#')]
+    most_common_genres = Counter(genre).most_common(3)
+    genre = [genre for genre, __ in most_common_genres]
+    
+    result = find_webtoons_with_genres(all_webtoon, genre)
+    result.sort(key=lambda x: x[1], reverse=True)
+    
+    id_list = [d['webtoon'] for d in webtoon_list]
+    
+    result = [t for t in result if t[0] not in id_list]
+    result = result[:24]
+    result = [t[0] for t in result]
+    
+    return result
+
+def find_webtoons_with_genres(webtoon_data, top_genres):
+    matching_webtoons = []
+    
+    for webtoon_id, genres in webtoon_data.items():
+        webtoon_genres = set(genres)
+        common_genres = webtoon_genres.intersection(top_genres)
+        
+        if len(common_genres) >= 3:
+            matching_webtoons.append((webtoon_id, 3))
+        elif len(common_genres) >= 2:
+            matching_webtoons.append((webtoon_id, 2))
+        elif len(common_genres) >= 1:
+            matching_webtoons.append((webtoon_id, 1))
+
+    return matching_webtoons
 ### def recommendation(webtoon_list):
 
 
-# GPT-3 모델 호출 및 결과 반환 함수
-def generate_chat_response(messages: list, user_input: str) -> str:
-    try:
-        messages.append({"role": "user", "content": f"{user_input}"})
-        completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-        assistant_content = completion.choices[0].message["content"].strip()
-        messages.append({"role": "assistant", "content": f"{assistant_content}"})
-        return assistant_content
-    except Exception as e:
-        assistant_content = "Error: " + str(e)
-        return assistant_content
+# # GPT-3 모델 호출 및 결과 반환 함수
+# def generate_chat_response(messages: list, user_input: str) -> str:
+#     try:
+#         messages.append({"role": "user", "content": f"{user_input}"})
+#         completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+#         assistant_content = completion.choices[0].message["content"].strip()
+#         messages.append({"role": "assistant", "content": f"{assistant_content}"})
+#         return assistant_content
+#     except Exception as e:
+#         assistant_content = "Error: " + str(e)
+#         return assistant_content
 
-def chat(webtoon_genre: str):
+# def chat(webtoon_genre: str):
 
-    # Request Body에서 입력 메시지 추출
-    inputText = f""" 입력하시오 {webtoon_genre}"""
+#     # Request Body에서 입력 메시지 추출
+#     inputText = f""" 입력하시오 {webtoon_genre}"""
 
-    # 이전 대화 기록을 저장할 리스트 생성
-    messages = []
+#     # 이전 대화 기록을 저장할 리스트 생성
+#     messages = []
 
-    # GPT-3 모델 호출 및 채팅 응답 생성
-    chat_response = generate_chat_response(messages, inputText)
+#     # GPT-3 모델 호출 및 채팅 응답 생성
+#     chat_response = generate_chat_response(messages, inputText)
 
 
-    return chat_response
+#     return chat_response
+
